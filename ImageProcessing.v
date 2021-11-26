@@ -1,3 +1,4 @@
+//  ********** MODULE TO READ THE IMAGE STARTS *********
 module IMAGE_READ 
 #(
     parameter HEIGHT = 768,
@@ -9,10 +10,10 @@ module IMAGE_READ
     output reg[7:0] R,
     output reg[7:0] G,
     output reg[7:0] B
-    // output wire C
 );
 integer fd;
-initial fd = $fopen(INFILE,"rb");
+initial fd = $fopen(INFILE,"rb"); //INFILE contains the hex values of inputted image
+
 integer i = 0;
 reg var = 1;
 always@(posedge clk,!$feof(fd))
@@ -23,68 +24,48 @@ begin
 end
 endmodule
 
-module IMAGE_WRITE
-#(
-    parameter OUTFILE =  "output.bmp",
-    HEIGHT = 768,
-    WIDTH = 512,
-    BMP_HEADER_NUM = 54	
-)
-(
-    input clk,
-    input [7:0] R,
-    input [7:0] G,
-    input [7:0] B
-);
-reg [7:0] BMP_header[0:53];
-initial begin
-BMP_header[ 0] = 66;BMP_header[28] =24; 
-BMP_header[ 1] = 77;BMP_header[29] = 0; 
-BMP_header[ 2] = 54;BMP_header[30] = 0; 
-BMP_header[ 3] = 0;BMP_header[31] = 0;
-BMP_header[ 4] = 18;BMP_header[32] = 0;
-BMP_header[ 5] = 0;BMP_header[33] = 0; 
-BMP_header[ 6] = 0;BMP_header[34] = 0; 
-BMP_header[ 7] = 0;BMP_header[35] = 0; 
-BMP_header[ 8] = 0;BMP_header[36] = 0;
-BMP_header[ 9] = 0;BMP_header[37] = 0; 
-BMP_header[10] = 54;BMP_header[38] = 0; 
-BMP_header[11] = 0;BMP_header[39] = 0; 
-BMP_header[12] = 0;BMP_header[40] = 0; 
-BMP_header[13] = 0;BMP_header[41] = 0; 
-BMP_header[14] = 40;BMP_header[42] = 0; 
-BMP_header[15] = 0;BMP_header[43] = 0; 
-BMP_header[16] = 0;BMP_header[44] = 0; 
-BMP_header[17] = 0;BMP_header[45] = 0; 
-BMP_header[18] = 0;BMP_header[46] = 0; 
-BMP_header[19] = 3;BMP_header[47] = 0;
-BMP_header[20] = 0;BMP_header[48] = 0;
-BMP_header[21] = 0;BMP_header[49] = 0; 
-BMP_header[22] = 0;BMP_header[50] = 0; 
-BMP_header[23] = 2;BMP_header[51] = 0; 
-BMP_header[24] = 0;BMP_header[52] = 0; 
-BMP_header[25] = 0;BMP_header[53] = 0; 
-BMP_header[26] = 1; BMP_header[27] = 0;
-end
-integer fd;
-initial begin
-    fd = $fopen(OUTFILE,"wb");
-end
-       integer  i;
-       initial begin
-       for(i=0; i<54; i=i+1) begin
-            $fwrite(fd, "%c", BMP_header[i][7:0]); // write the header
-        end
-        end
+//  ********** MODULE TO READ THE IMAGE ENDS *********
 
-always@(posedge clk,!$feof(fd))
+
+// ********** MODULE FOR THRESHOLD OPERTION STARTS***********//
+module THRESHOLD #(    
+    parameter HEIGHT1 = 768,
+    WIDTH1 = 512,
+    THRESHOLD= 90,
+    INFILE1 =  "IM.hex"
+    ) (
+    input clk,
+  
+    output reg[7:0] R,
+    output reg[7:0] G,
+    output reg[7:0] B
+);
+wire [7:0]a;
+wire [7:0]b;
+wire [7:0]c;
+
+IMAGE_READ #(.HEIGHT(HEIGHT1),.WIDTH(WIDTH1),.INFILE(INFILE1)) a2(clk,a,b,c);
+ 
+always@(posedge clk)
 begin
-        $fwrite(fd, "%c", B[7:0]);
-        $fwrite(fd, "%c", G[7:0]);
-        $fwrite(fd, "%c", R[7:0]);
+        if((a+b+c)/3>THRESHOLD) 
+        begin
+            R = 255;
+            G = 255;
+            B = 255;
+        end
+        else begin
+            R = 0;
+            G = 0;
+            B = 0;
+        end
 end
 endmodule
- 
+// ********** MODULE FOR THRESHOLD OPERTION ENDS***********//
+
+
+//  ********** MODULE TO CONVERT A PIXEL TO GRAYSCALE STARTS *********
+
 module IMAGE_grayscale #(    
     parameter HEIGHT1 = 768,
     WIDTH1 = 512,
@@ -101,14 +82,17 @@ wire [7:0]c;
 IMAGE_READ #(.HEIGHT(HEIGHT1),.WIDTH(WIDTH1),.INFILE(INFILE1)) a2(clk,a,b,c);
 always@(posedge clk)
 begin
-        R =  (a+b+c)/3; 
-        G =  (a+b+c)/3; 
-        B =  (a+b+c)/3; 
+    // average of the the rgb is taken
+        R =  (a+b+c)/3; // save Red component
+        G =  (a+b+c)/3; // save Green component
+        B =  (a+b+c)/3; // save Blue component
 end
 endmodule
 
+//  ********** MODULE TO CONVERT A PIXEL TO GRAYSCALE ENDS *********
 
 
+//  ********** MODULE TO INVERT A PIXEL TO  STARTS *********
 module IMAGE_invert #(
     parameter HEIGHT1 = 768,
     WIDTH1 = 512,
@@ -125,8 +109,108 @@ wire [7:0]c;
 IMAGE_READ #(.HEIGHT(HEIGHT1),.WIDTH(WIDTH1),.INFILE(INFILE1)) a2(clk,a,b,c);
 always@(posedge clk)
 begin
-        R =  255-(a+b+c)/3; 
-        G =  255-(a+b+c)/3; 
-        B =  255-(a+b+c)/3; 
+
+        R =  255-(a+b+c)/3; // save Red component
+        G =  255-(a+b+c)/3; // save Green component
+        B =  255-(a+b+c)/3; // save Blue component
+end
+
+endmodule
+
+//  ********** MODULE TO INVERT A PIXEL ENDS *********
+
+
+//  ********** MODULE TO INCREASE BRIGHTNESS OF A PIXEL STARTS *********
+module IMAGE_BRIGHTNESS_INCREASE #(    
+    parameter HEIGHT1 = 768,
+    WIDTH1 = 512,
+    INFILE1 =  "testimage.hex"
+    ) (
+    input clk,
+    input wire[7:0] v,
+    output reg[7:0] R,
+    output reg[7:0] G,
+    output reg[7:0] B
+);
+wire [7:0]a;
+wire [7:0]b;
+wire [7:0]c;
+IMAGE_READ #(.HEIGHT(HEIGHT1),.WIDTH(WIDTH1),.INFILE(INFILE1)) a2(clk,a,b,c);
+always@(posedge clk)
+begin
+        if(a + v <= a) B = 255; // save Red component
+        else B = a + v; 
+        if(b + v <= b) G = 255; // save Green component
+        else G = b + v; 
+        if(c + v <= c) R = 255; // save Blue component
+        else R = c + v; 
 end
 endmodule
+//  ********** MODULE TO INCREASE BRIGHTNESS OF A PIXEL ENDS *********
+
+
+
+//  ********** MODULE TO DECREASE BRIGHTNESS OF A PIXEL STARTS *********
+
+module IMAGE_BRIGHTNESS_DECREASE #(    
+    parameter HEIGHT1 = 768,
+    WIDTH1 = 512,
+    // v = 100,
+    INFILE1 =  "testimage.hex"
+    ) (
+    input clk,
+    input wire[7:0] v,
+    output reg[7:0] R,
+    output reg[7:0] G,
+    output reg[7:0] B
+);
+wire [7:0]a;
+wire [7:0]b;
+wire [7:0]c;
+IMAGE_READ #(.HEIGHT(HEIGHT1),.WIDTH(WIDTH1),.INFILE(INFILE1)) a2(clk,a,b,c);
+always@(posedge clk)
+begin
+        if(a - v <= 0 || a - v >= a) B = 0; // save Red component
+        else B = a - v; 
+        if(b - v <= 0 || b - v >= b) G = 0; // save Green component
+        else G = b - v; 
+        if(c - v <= 0 || c - v >= c) R = 0; // save Blue component
+        else R = c - v; 
+end
+endmodule
+//  ********** MODULE TO DECREASE BRIGHTNESS OF A PIXEL ENDS *********
+
+
+
+//  ********** MODULE TO WRITE THE PIXEL INTO A HEX FILE  STARTS *********
+
+module IMAGE_WRITE
+#(
+    parameter OUTFILE =  "output.hex",
+    HEIGHT = 768,
+    WIDTH = 512,
+    BMP_HEADER_NUM = 54	
+)
+(
+    input clk,
+    input [7:0] R,
+    input [7:0] G,
+    input [7:0] B
+);
+
+integer fd;
+initial begin
+    fd = $fopen(OUTFILE,"wb");
+end
+
+always@(posedge clk,!$feof(fd))
+begin
+
+        #20 $fwrite(fd, "%x\n", B[7:0]);
+        $fwrite(fd, "%x\n", G[7:0]);
+        $fwrite(fd, "%x\n", R[7:0]);
+
+end
+endmodule
+
+//  ********** MODULE TO WRITE THE PIXEL INTO A HEX FILE  ENDS *********
